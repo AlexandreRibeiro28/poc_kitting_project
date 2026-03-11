@@ -9,12 +9,19 @@
   scanner.render((decodedText) => {
     document.getElementById('status').innerText = "Sending: " + decodedText;
     
-    // Sending to ESP32 via HTTP POST
-    fetch('http://192.168.1.6/data', { // Your ESP32 IP
-      method: 'POST',
-      body: decodedText
+    fetch('http://192.168.x.x/data', { // Use your ESP32's actual IP here
+        method: 'POST',
+        mode: 'cors', // Explicitly tell the browser to use CORS
+        headers: {
+            'Content-Type': 'text/plain'
+        },
+        body: decodedText // This is the string from the Data Matrix
     })
-    .then(response => console.log("Sent!"))
-    .catch(err => alert("Connection Failed: " + err));
-  });
+    .then(response => {
+        if(response.ok) console.log("Success!");
+    })
+    .catch(err => {
+        console.error("Fetch Error:", err);
+        document.getElementById('status').innerText = "Network Error: Check IP or CORS";
+    });
 </script>
