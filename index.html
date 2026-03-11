@@ -9,7 +9,7 @@
   scanner.render((decodedText) => {
     document.getElementById('status').innerText = "Sending: " + decodedText;
     
-    fetch('http://192.168.x.x/data', { // Use your ESP32's actual IP here
+    fetch('http://192.168.1.6/data', { // Use your ESP32's actual IP here
         method: 'POST',
         mode: 'cors', // Explicitly tell the browser to use CORS
         headers: {
