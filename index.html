@@ -1,13 +1,13 @@
 <script src="https://unpkg.com/html5-qrcode"></script>
 
 <div id="reader" style="width: 300px"></div>
-<p id="status">Scanning...</p>
+<p id="status">Escaneando...</p>
 
 <script>
   const scanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: 250 });
 
   scanner.render((decodedText) => {
-    document.getElementById('status').innerText = "Sending: " + decodedText;
+    document.getElementById('status').innerText = "Código enviado: " + decodedText;
     
     // Sending to ESP32 via HTTP POST
     fetch('http://192.168.1.6/data', { // Your ESP32 IP
