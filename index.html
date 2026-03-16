@@ -10,7 +10,7 @@
     document.getElementById('status').innerText = "Código enviado: " + decodedText;
     
     // Sending to ESP32 via HTTP POST
-    fetch('http://172.100.10.165/data', { // Your ESP32 IP
+    fetch('http://172.100.10.127/data', { // Your ESP32 IP
       method: 'POST',
       mode: 'cors',
       headers: {
