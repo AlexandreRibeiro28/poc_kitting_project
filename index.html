@@ -1,24 +1,104 @@
-<script src="https://unpkg.com/html5-qrcode"></script>
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kitting Control</title>
+    <script src="https://unpkg.com/html5-qrcode"></script>
+    <style>
+        body { font-family: sans-serif; text-align: center; padding: 20px; background: #f4f4f4; }
+        .page { display: none; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .active { display: block; }
+        button { padding: 10px 20px; margin: 10px; cursor: pointer; border: none; border-radius: 5px; background: #007bff; color: white; }
+        select, input { padding: 8px; margin: 5px; width: 80%; max-width: 200px; }
+        #reader { margin: 0 auto; border: 2px solid #333; }
+    </style>
+</head>
+<body>
 
-<div id="reader" style="width: 300px"></div>
-<p id="status">Escaneando...</p>
+    <div id="scannerPage" class="page active">
+        <h2>Escaneador Data Matrix</h2>
+        <div id="reader"></div>
+        <p id="status">Aguardando leitura...</p>
+        <hr>
+        <button onclick="showPage('manualPage')">Ir para Controle Manual</button>
+    </div>
 
-<script>
-  const scanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: 250 });
+    <div id="manualPage" class="page">
+        <h2>Controle Manual de LED</h2>
+        
+        <label>Fita (Strip ID):</label><br>
+        <select id="stripID">
+            <option value="1">1</option>
+            <option value="2">2</option>
+            <option value="3">3</option>
+        </select><br>
 
-  scanner.render((decodedText) => {
-    document.getElementById('status').innerText = "Código enviado: " + decodedText;
-    
-    // Sending to ESP32 via HTTP POST
-    fetch('http://esp32_poc_kitting.local/data', { // Your ESP32 IP
-      method: 'POST',
-      mode: 'cors',
-      headers: {
-            'Content-Type': 'text/plain'
-      },
-      body: decodedText
-    })
-    .then(response => console.log("Sent!"))
-    .catch(err => alert("Connection Failed: " + err));
-  });
-</script>
+        <label>LED ID (1-20):</label><br>
+        <input type="number" id="ledID" min="1" max="20" value="1"><br>
+
+        <label>Cor:</label><br>
+        <select id="colorSelect">
+            <option value="RED">Vermelho</option>
+            <option value="GREEN">Verde</option>
+            <option value="BLUE">Azul</option>
+            <option value="YELLOW">Amarelo</option>
+        </select><br>
+
+        <label>
+            <input type="checkbox" id="blinkCheck"> Piscar (Blink)
+        </label><br>
+
+        <button onclick="sendManualData()" style="background: #28a745;">Enviar Comando</button>
+        <hr>
+        <button onclick="showPage('scannerPage')" style="background: #6c757d;">Voltar para o Scanner</button>
+    </div>
+
+    <script>
+        const espUrl = 'http://esp32_poc_kitting.local/data';
+
+        // Page Switcher
+        function showPage(pageId) {
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.getElementById(pageId).classList.add('active');
+        }
+
+        // 1. SCANNER LOGIC
+        const scanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: 250 });
+        scanner.render((decodedText) => {
+            document.getElementById('status').innerText = "Código lido: " + decodedText;
+            sendToESP(decodedText);
+        });
+
+        // 2. MANUAL CONTROL LOGIC
+        function sendManualData() {
+            const s = document.getElementById('stripID').value;
+            const l = document.getElementById('ledID').value;
+            const c = document.getElementById('colorSelect').value;
+            const b = document.getElementById('blinkCheck').checked ? "1" : "0";
+
+            // Format: MANUAL_S[strip]_L[led]_C[color]_B[blink]
+            // Example: MANUAL_S1_L15_CRED_B1
+            const payload = `MANUAL_S${s}_L${l}_C${c}_B${b}`;
+            sendToESP(payload);
+        }
+
+        // Generic Send Function
+        function sendToESP(data) {
+            fetch(espUrl, {
+                method: 'POST',
+                mode: 'cors',
+                headers: { 'Content-Type': 'text/plain' },
+                body: data
+            })
+            .then(response => {
+                if(response.ok) alert("Enviado com sucesso!");
+            })
+            .catch(err => {
+                console.error(err);
+                alert("Erro de conexão: Verifique se o ESP32 está na mesma rede.");
+            });
+        }
+    </script>
+</body>
+</html>
