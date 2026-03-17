@@ -7,11 +7,14 @@
     <script src="https://unpkg.com/html5-qrcode"></script>
     <style>
         body { font-family: sans-serif; text-align: center; padding: 20px; background: #f4f4f4; }
-        .page { display: none; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .page { display: none; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); max-width: 400px; margin: 0 auto; }
         .active { display: block; }
-        button { padding: 10px 20px; margin: 10px; cursor: pointer; border: none; border-radius: 5px; background: #007bff; color: white; }
-        select, input { padding: 8px; margin: 5px; width: 80%; max-width: 200px; }
-        #reader { margin: 0 auto; border: 2px solid #333; }
+        button { padding: 12px 20px; margin: 10px; cursor: pointer; border: none; border-radius: 5px; background: #007bff; color: white; width: 80%; font-weight: bold; }
+        select { padding: 10px; margin: 8px; width: 85%; border-radius: 5px; border: 1px solid #ccc; font-size: 16px; }
+        label { font-weight: bold; display: block; margin-top: 10px; text-align: left; margin-left: 10%; }
+        #reader { margin: 10px auto; border: 2px solid #333; }
+        .checkbox-container { display: flex; align-items: center; justify-content: center; margin: 10px; }
+        input[type="checkbox"] { width: 20px; height: 20px; margin-right: 10px; }
     </style>
 </head>
 <body>
@@ -27,27 +30,30 @@
     <div id="manualPage" class="page">
         <h2>Controle Manual de LED</h2>
         
-        <label>Fita (Strip ID):</label><br>
+        <label>Fita (Strip ID):</label>
         <select id="stripID">
-            <option value="1">1</option>
-            <option value="2">2</option>
-            <option value="3">3</option>
-        </select><br>
+            <option value="1">Fita 1</option>
+            <option value="2">Fita 2</option>
+            <option value="3">Fita 3</option>
+        </select>
 
-        <label>LED ID (1-20):</label><br>
-        <input type="number" id="ledID" min="1" max="20" value="1"><br>
+        <label>LED ID (1-20):</label>
+        <select id="ledID">
+            </select>
 
-        <label>Cor:</label><br>
+        <label>Cor:</label>
         <select id="colorSelect">
             <option value="RED">Vermelho</option>
             <option value="GREEN">Verde</option>
             <option value="BLUE">Azul</option>
             <option value="YELLOW">Amarelo</option>
-        </select><br>
+            <option value="BLACK">Desligar (OFF)</option>
+        </select>
 
-        <label>
-            <input type="checkbox" id="blinkCheck"> Piscar (Blink)
-        </label><br>
+        <div class="checkbox-container">
+            <input type="checkbox" id="blinkCheck">
+            <label style="margin: 0; text-align: left;">Piscar (Blink)</label>
+        </div>
 
         <button onclick="sendManualData()" style="background: #28a745;">Enviar Comando</button>
         <hr>
@@ -57,33 +63,42 @@
     <script>
         const espUrl = 'http://esp32_poc_kitting.local/data';
 
-        // Page Switcher
+        // Preenche o dropdown do LED ID de 1 a 20 ao carregar
+        const ledSelect = document.getElementById('ledID');
+        for (let i = 1; i <= 20; i++) {
+            let opt = document.createElement('option');
+            opt.value = i;
+            opt.innerHTML = "LED " + i;
+            ledSelect.appendChild(opt);
+        }
+
+        // Alternador de Páginas
         function showPage(pageId) {
             document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
             document.getElementById(pageId).classList.add('active');
         }
 
-        // 1. SCANNER LOGIC
+        // 1. LÓGICA DO SCANNER
         const scanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: 250 });
         scanner.render((decodedText) => {
             document.getElementById('status').innerText = "Código lido: " + decodedText;
             sendToESP(decodedText);
         });
 
-        // 2. MANUAL CONTROL LOGIC
+        // 2. LÓGICA DO CONTROLE MANUAL
         function sendManualData() {
             const s = document.getElementById('stripID').value;
             const l = document.getElementById('ledID').value;
             const c = document.getElementById('colorSelect').value;
             const b = document.getElementById('blinkCheck').checked ? "1" : "0";
 
-            // Format: MANUAL_S[strip]_L[led]_C[color]_B[blink]
-            // Example: MANUAL_S1_L15_CRED_B1
+            // Formato: MANUAL_S[strip]_L[led]_C[color]_B[blink]
+            // Exemplo: MANUAL_S1_L15_CBLACK_B0
             const payload = `MANUAL_S${s}_L${l}_C${c}_B${b}`;
             sendToESP(payload);
         }
 
-        // Generic Send Function
+        // Função de Envio Genérica
         function sendToESP(data) {
             fetch(espUrl, {
                 method: 'POST',
@@ -92,11 +107,11 @@
                 body: data
             })
             .then(response => {
-                if(response.ok) alert("Enviado com sucesso!");
+                if(response.ok) alert("Comando enviado!");
             })
             .catch(err => {
                 console.error(err);
-                alert("Erro de conexão: Verifique se o ESP32 está na mesma rede.");
+                alert("Erro de conexão! Verifique o IP/mDNS do ESP32.");
             });
         }
     </script>
